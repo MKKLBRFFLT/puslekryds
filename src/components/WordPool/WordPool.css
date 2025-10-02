@@ -1,0 +1,97 @@
+.word-pool {
+  width: 260px;
+  padding: 12px;
+  background-color: gray;
+  align-self: flex-start;
+}
+
+.word-pool__title {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #000000;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.word-pool__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.word-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+/* Make the tile consume the available row width */
+.word-tile {
+  position: relative;
+  user-select: none;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 12px;
+  background: #fff;
+  padding: 8px 10px;
+  width: 100%;
+  min-height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Critical: keep width stable so flipping H<->V doesn't change row width */
+  width: 100%;
+}
+
+/* Don’t let horizontal/vertical alter the width anymore */
+.word-tile--horizontal {
+  padding: 12px 12px 12px 5px;
+}
+.word-tile--vertical {
+  padding: 12px 12px 12px 5px;
+  width: 35px;
+}
+
+/* Optional: visual polish */
+.word-tile.is-dragging {
+  opacity: 0.7;
+}
+
+.word-tile__content {
+  font-weight: 600;
+  color: #111827;
+}
+.word-tile__text-inline {
+  letter-spacing: 0.08em;
+}
+.word-tile__text-stacked {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+  align-items: center;
+}
+
+/* The outside toggle button */
+.word-tile__toggle-outside {
+  font-size: 12px;
+  border: 1px solid var(--border, #1f6aff);
+  background: lightblue;
+  border-radius: 8px;
+  padding: 6px 6px;
+  cursor: pointer;
+  width: 35px;
+  height: 35px;
+  flex: 0 0 auto; /* never steal width from the tile */
+  color: black;
+}
+.word-tile__toggle-outside:hover {
+  background: #e7efff;
+}
+
+/* The list just stacks rows; it can grow downward */
+.word-pool__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}

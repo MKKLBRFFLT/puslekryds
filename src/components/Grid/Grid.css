@@ -1,0 +1,38 @@
+:root {
+  --cell-size: 44px;
+  --grid-border: #333;
+  --cell-bg: #fff;
+  --cell-hover: #def;
+  --cell-over: #cfe8ff;
+  --cell-occupied: #f5f5f5;
+}
+
+.grid-container {
+  display: grid;
+  border: 2px solid var(--grid-border);
+  width: max-content;
+}
+
+.grid-cell {
+  border: 1px solid var(--grid-border);
+  background: var(--cell-bg);
+  aspect-ratio: 1 / 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.grid-cell__letter {
+  font-weight: 700;
+  font-family: system-ui, sans-serif;
+  color: black;
+}
+
+.grid-cell--over {
+  background: var(--cell-over); /* highlight when a draggable is over this cell */
+}
+
+.grid-cell--occupied {
+  background: var(--cell-occupied);
+}
