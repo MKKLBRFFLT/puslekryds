@@ -36,3 +36,8 @@
 .grid-cell--occupied {
   background: var(--cell-occupied);
 }
+
+.grid-cell--blocked {
+  background: #111;
+  border: 1px solid #000;
+}

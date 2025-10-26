@@ -8,6 +8,7 @@ type GridProps = {
   occupiedKeys?: Set<string>;
   /** key "r-c" -> single character placed into that cell */
   letters?: Record<string, string>;
+  blockedKeys?: Set<string>;
 };
 
 function DroppableCell({
@@ -47,6 +48,15 @@ export default function Grid(props: GridProps) {
   for (let r = 0; r < props.rows; r++) {
     for (let c = 0; c < props.cols; c++) {
       const key = `${r}-${c}`;
+      const isBlocked = props.blockedKeys?.has(key);
+
+      if (isBlocked) {
+        cells.push(
+          <div key={key} className="grid-cell grid-cell--blocked" data-row={r} data-col={c} />,
+        );
+        continue; // do NOT render as droppable
+      }
+
       cells.push(
         <DroppableCell
           key={key}

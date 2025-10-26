@@ -1,66 +1,75 @@
 import './App.css';
 import { useMemo, useState, useCallback } from 'react';
 import Grid from './components/Grid/Grid';
-import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core';
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragStartEvent,
+  type DragEndEvent,
+} from '@dnd-kit/core';
 import WordPool from './components/WordPool/WordPool';
 import type { Word, Orientation } from './components/WordPool/WordPool';
 
-/** Fixed correct start cells for each word (0-based r,c). */
+import ipuzData from './assets/samplepuzzle.json';
+import {
+  ipuzToPuzzle,
+  buildTilesFromPuzzle,
+  buildStartIndex,
+  buildWordCellsIndex,
+} from './lib/ipuz';
+import type { Coord } from './lib/ipuz';
 
-const CORRECT_TARGET: Record<string, { r: number; c: number; orientation: Orientation }> = {
-  w1: { r: 1, c: 1, orientation: 'horizontal' }, // APPLE
-  w2: { r: 1, c: 1, orientation: 'vertical' }, // PEAR
-  w3: { r: 2, c: 4, orientation: 'horizontal' }, // BERRY
-  w4: { r: 5, c: 2, orientation: 'vertical' }, // CAR
-  w5: { r: 7, c: 0, orientation: 'horizontal' }, // MUFFIN
-  w6: { r: 0, c: 6, orientation: 'horizontal' }, // CONTINENT
-};
-
-/** Initial words with an initial (mutable) orientation. */
-const initialWords: Word[] = [
-  { id: 'w1', text: 'APPLE', orientation: 'horizontal' },
-  { id: 'w2', text: 'PEAR', orientation: 'horizontal' },
-  { id: 'w3', text: 'BERRY', orientation: 'horizontal' },
-  { id: 'w4', text: 'CAR', orientation: 'horizontal' },
-  { id: 'w5', text: 'MUFFIN', orientation: 'horizontal' },
-  { id: 'w6', text: 'CONTINENT', orientation: 'horizontal' },
-];
+/** Local helpers */
+const cellKey = (p: Coord) => `${p.r}-${p.c}`;
+const startKey = (p: Coord, dir: Orientation) => `${p.r}-${p.c}|${dir}`;
 
 export default function App() {
-  const [words, setWords] = useState<Word[]>(initialWords);
+  /** Immutable puzzle derived from IPUZ */
+  const puzzle = useMemo(() => ipuzToPuzzle(ipuzData as any), []);
 
-  // letters stamped into the grid: key "r-c" -> single character
-  const [letters, setLetters] = useState<Record<string, string>>({});
+  /** Word tiles (UI state with mutable orientation) */
+  const [words, setWords] = useState<Word[]>(() => buildTilesFromPuzzle(puzzle));
 
-  // which words have been successfully placed
+  /** Already placed words */
   const [placedWordIds, setPlacedWordIds] = useState<Set<string>>(new Set());
 
+  /** Revealed cell keys "r-c" */
+  const [revealed, setRevealed] = useState<Set<string>>(new Set());
+
+  /** Show only unplaced words in the pool */
   const remainingWords = useMemo(
     () => words.filter((w) => !placedWordIds.has(w.id)),
     [words, placedWordIds],
   );
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 10 },
-    }),
-  );
+  /** Fast indexes for validation & reveal */
+  const startIndex = useMemo(() => buildStartIndex(puzzle), [puzzle]);
+  const wordCells = useMemo(() => buildWordCellsIndex(puzzle), [puzzle]);
+
+  /** DnD sensor (mobile-friendly: require small move before drag) */
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 10 } }));
 
   const handleDragStart = (_e: DragStartEvent) => {
-    console.log('Starting Drag.');
+    // no-op for now
   };
 
+  /** Rotate tile (UI only) */
   const toggleOrientation = useCallback((id: string) => {
     setWords((prev) =>
       prev.map((w) =>
         w.id === id
-          ? { ...w, orientation: w.orientation === 'horizontal' ? 'vertical' : 'horizontal' }
+          ? {
+              ...w,
+              orientation: w.orientation === 'horizontal' ? 'vertical' : 'horizontal',
+            }
           : w,
       ),
     );
   }, []);
 
+  /** Validate drop against authored start+dir; reveal on success */
   const handleDragEnd = (e: DragEndEvent) => {
     const wordId = String(e.active.id);
     const overId = e.over?.id ? String(e.over.id) : null;
@@ -70,59 +79,59 @@ export default function App() {
     const r = Number(rStr);
     const c = Number(cStr);
 
-    if (placedWordIds.has(wordId)) {
-      console.log(`Word ${wordId} is already placed; ignoring drop.`);
+    if (placedWordIds.has(wordId)) return;
+
+    // Tile's CURRENT orientation at drop time
+    const currentOrientation: Orientation | undefined =
+      (e.active.data?.current as any)?.orientation ??
+      words.find((w) => w.id === wordId)?.orientation;
+
+    if (!currentOrientation) return;
+
+    // Check authored start for (r,c|dir)
+    const expectedId = startIndex.get(startKey({ r, c }, currentOrientation));
+    if (expectedId !== wordId) {
+      // wrong start or wrong direction -> reject silently (or toast/shake)
       return;
     }
 
-    const target = CORRECT_TARGET[wordId];
-    if (!target) {
-      console.log(`No predetermined target for word ${wordId}.`);
-      return;
-    }
-
-    // 1) Check start cell
-    if (target.r !== r || target.c !== c) {
-      console.log(
-        `Incorrect start cell for ${wordId}. Expected cell-${target.r}-${target.c}, got cell-${r}-${c}.`,
-      );
-      return;
-    }
-
-    // 2) Check orientation
-    const word = words.find((w) => w.id === wordId);
-    if (!word) return;
-
-    if (word.orientation !== target.orientation) {
-      console.log(
-        `Incorrect orientation for ${wordId}. Expected ${target.orientation}, got ${word.orientation}.`,
-      );
-      return;
-    }
-
-    // OK: stamp letters along the (correct) current orientation
-    setLetters((prev) => {
-      const next = { ...prev };
-      const text = word.text;
-      if (word.orientation === 'horizontal') {
-        for (let i = 0; i < text.length; i++) next[`${r}-${c + i}`] = text[i];
-      } else {
-        for (let i = 0; i < text.length; i++) next[`${r + i}-${c}`] = text[i];
-      }
+    // Success: reveal all cells for this word
+    const cells = wordCells.get(wordId) ?? [];
+    setRevealed((prev) => {
+      const next = new Set(prev);
+      for (const pos of cells) next.add(cellKey(pos));
       return next;
     });
-
-    setPlacedWordIds((prev) => new Set(prev).add(wordId));
+    setPlacedWordIds((prev) => {
+      const next = new Set(prev);
+      next.add(wordId);
+      return next;
+    });
   };
 
-  // Build a Set of occupied cell keys for tinting (optional)
-  const occupiedKeys = useMemo(() => new Set(Object.keys(letters)), [letters]);
+  /** Grid wants a key->letter map for revealed cells */
+  const letters = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const key of revealed) {
+      const ch = (puzzle.solutionLetters as any)[key];
+      if (ch) out[key] = ch;
+    }
+    return out;
+  }, [revealed, puzzle.solutionLetters]);
+
+  /** Occupied = revealed (for tinting) */
+  const occupiedKeys = useMemo(() => new Set(Array.from(revealed)), [revealed]);
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="app-layout">
-        <Grid rows={10} cols={10} occupiedKeys={occupiedKeys} letters={letters} />
-        {/* Pass only unplaced words to the pool */}
+        <Grid
+          rows={puzzle.rows}
+          cols={puzzle.cols}
+          occupiedKeys={occupiedKeys}
+          letters={letters}
+          blockedKeys={puzzle.blockedKeys}
+        />
         <WordPool words={remainingWords} onToggleOrientation={toggleOrientation} />
       </div>
     </DndContext>
