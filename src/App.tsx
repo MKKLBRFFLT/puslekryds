@@ -1,5 +1,5 @@
 import './App.css';
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import Grid from './components/Grid/Grid';
 import {
   DndContext,
@@ -37,6 +37,8 @@ export default function App() {
 
   /** Revealed cell keys "r-c" */
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
+
+  const [recentAutoSolved, setRecentAutoSolved] = useState<string[]>([]);
 
   /** Show only unplaced words in the pool */
   const remainingWords = useMemo(
@@ -108,6 +110,37 @@ export default function App() {
       return next;
     });
   };
+
+  useEffect(() => {
+    setPlacedWordIds((prev) => {
+      const next = new Set(prev);
+      const newlySolved: string[] = [];
+
+      for (const [wordId, cells] of wordCells) {
+        if (next.has(wordId)) continue;
+
+        let allRevealed = true;
+        for (const pos of cells) {
+          if (!revealed.has(cellKey(pos))) {
+            allRevealed = false;
+            break;
+          }
+        }
+
+        if (allRevealed) {
+          next.add(wordId);
+          newlySolved.push(wordId);
+        }
+      }
+
+      if (newlySolved.length > 0) {
+        setRecentAutoSolved((prevQueue) => [...prevQueue, ...newlySolved]);
+        return next;
+      }
+
+      return prev;
+    });
+  }, [revealed, wordCells]);
 
   /** Grid wants a key->letter map for revealed cells */
   const letters = useMemo(() => {

@@ -1,5 +1,5 @@
 .word-pool {
-  width: 260px;
+  width: 600px;
   padding: 12px;
   background-color: gray;
   align-self: flex-start;
@@ -13,6 +13,12 @@
   letter-spacing: 0.04em;
 }
 
+.word-pool__sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  align-items: flex-start;
+}
 .word-pool__list {
   display: flex;
   flex-direction: column;

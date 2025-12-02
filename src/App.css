@@ -1,9 +1,7 @@
 .app-layout {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(260px, 420px);
   gap: 16px;
+  align-items: start;
   padding: 16px;
-
-  /* The two lines that fix the wobble: */
-  height: 100vh; /* lock the container to the viewport height */
-  align-items: flex-start; /* top-align columns, never re-center vertically */
 }

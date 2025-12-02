@@ -1,4 +1,5 @@
 import React from 'react';
+import { useMemo } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import './WordPool.css';
 
@@ -75,12 +76,46 @@ function WordTile({ word, onToggle }: { word: Word; onToggle: () => void }) {
 }
 
 export default function WordPool({ words, onToggleOrientation }: WordPoolProps) {
+  const lengthGroups = useMemo(() => {
+    const map = new Map<number, Word[]>();
+
+    for (const w of words) {
+      const len = w.text.length;
+      if (len < 2) continue;
+      const list = map.get(len);
+      if (list) list.push(w);
+      else map.set(len, [w]);
+    }
+
+    // WORDPOOL UPDATE — sort groups by length (desc)
+    const lengths = Array.from(map.keys()).sort((a, b) => b - a);
+
+    return lengths.map((len) => ({
+      length: len,
+      words: map.get(len)!,
+    }));
+  }, [words]);
+
   return (
     <aside className="word-pool">
       <h2 className="word-pool__title">Word Pool</h2>
-      <div className="word-pool__list">
-        {words.map((w) => (
-          <WordTile key={w.id} word={w} onToggle={() => onToggleOrientation(w.id)} />
+
+      {/* WORDPOOL UPDATE — sections grouped by length */}
+      <div className="word-pool__sections">
+        {lengthGroups.map((group) => (
+          <section
+            key={group.length}
+            className="word-pool__section"
+            aria-label={`${group.length}-letter words`}
+          >
+            <h3 className="word-pool__section-title">{group.length} bogstaver</h3>
+
+            <div className="word-pool__section-list">
+              {group.words.map((w) => (
+                <WordTile key={w.id} word={w} onToggle={() => onToggleOrientation(w.id)} />
+              ))}
+            </div>
+          </section>
         ))}
       </div>
     </aside>

@@ -139,7 +139,7 @@ export function buildTilesFromPuzzle(puzzle: Puzzle): TileWord[] {
   return puzzle.words.map((w) => ({
     id: w.id,
     text: w.text,
-    orientation: w.dir, // initial current orientation equals the correct dir; user can rotate
+    orientation: 'horizontal', // initial current orientation equals the correct dir; user can rotate
   }));
 }
 
