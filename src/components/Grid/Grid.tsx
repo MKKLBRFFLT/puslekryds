@@ -37,6 +37,7 @@ function DroppableCell({
       data-row={r}
       data-col={c}
       data-id={id}
+      role="gridcell"
     >
       {letter && <span className="grid-cell__letter">{letter}</span>}
     </div>
@@ -52,7 +53,13 @@ export default function Grid(props: GridProps) {
 
       if (isBlocked) {
         cells.push(
-          <div key={key} className="grid-cell grid-cell--blocked" data-row={r} data-col={c} />,
+          <div
+            key={key}
+            className="grid-cell grid-cell--blocked"
+            data-row={r}
+            data-col={c}
+            role="gridcell"
+          />,
         );
         continue; // do NOT render as droppable
       }
